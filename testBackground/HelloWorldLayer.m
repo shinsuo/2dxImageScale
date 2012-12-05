@@ -28,11 +28,11 @@
 		
         lastScale = 1.f;	
         
-        UIPinchGestureRecognizer *gestureRecognizer = [[[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchFrom:)] autorelease];	
-        [[[CCDirector sharedDirector] openGLView] addGestureRecognizer:gestureRecognizer];
-        
-        UIPanGestureRecognizer *gestureRecognizer1 = [[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanFrom:)] autorelease];
-        [[[CCDirector sharedDirector] openGLView] addGestureRecognizer:gestureRecognizer1];
+//        UIPinchGestureRecognizer *gestureRecognizer = [[[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchFrom:)] autorelease];	
+//        [[[CCDirector sharedDirector] openGLView] addGestureRecognizer:gestureRecognizer];
+//        
+//        UIPanGestureRecognizer *gestureRecognizer1 = [[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanFrom:)] autorelease];
+//        [[[CCDirector sharedDirector] openGLView] addGestureRecognizer:gestureRecognizer1];
 
         backGround = [CCSprite spriteWithFile:@"ground.jpg"];
         
@@ -44,7 +44,7 @@
 		
 		[self addChild: backGround];
         
-//        self.isTouchEnabled = YES;
+        self.isTouchEnabled = YES;
  
 	}
 	return self;
@@ -121,6 +121,7 @@
     { 
         
         CGPoint translation = [recognizer translationInView:recognizer.view];
+        CCLOG(@"translation:%f,%f",translation.x,translation.y);
         translation = ccp(translation.x, -translation.y);
         translation = ccpMult(translation, 0.7f);
         CGPoint newPos = ccpAdd(lastPosition, translation);
@@ -143,12 +144,91 @@
 #pragma mark TouchMehtod
 - (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
 {
-    CCLOG(@"count:%i",[touches count]);
+    int numTouchs = [touches count];
+    switch (numTouchs) {
+        case 1:
+        {
+            lastPosition = self.position;
+            _beganPoint = [[touches anyObject] locationInView:[[CCDirector sharedDirector] openGLView]];
+        }
+            break;
+        case 2:
+        {
+//            CGPoint onePoint = [[touches anyObject] locationOfTouch:0 inView:[[CCDirector sharedDirector] openGLView]];
+//            CGPoint anotherPoint = [[touches anyObject] locationOfTouch:1 inView:[[CCDirector sharedDirector] openGLView]];
+            CGPoint pt[2];
+            int i = 0;
+            for (id touch in touches) {
+               pt[i++] = [touch locationInView:[[CCDirector sharedDirector] openGLView]];
+            }
+            
+            _beganLength = ccpDistance(pt[0], pt[1]);
+            lastScale = self.scale;
+        }
+            break;
+        default:
+            break;
+    }
 }
 
 - (void)ccTouchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
 {
-
+    int numTouchs = [touches count];
+    switch (numTouchs) {
+        case 1:
+        {
+            _currentPoint = [[touches anyObject] locationInView:[[CCDirector sharedDirector] openGLView]];
+            
+            CGPoint translation = ccpSub(_currentPoint, _beganPoint);
+            translation = ccp(translation.x, -translation.y);
+//            translation = ccpMult(translation, 0.7f);
+            CGPoint newPos = ccpAdd(lastPosition, translation);
+            CCLOG(@"_beganPoint:%f,%f---_currentPoint:%f,%f---translation:%f,%f---newPos:%f,%f--%i",_beganPoint.x,_beganPoint.y,
+                  _currentPoint.x,_currentPoint.y,translation.x,translation.y,newPos.x,newPos.y,CGRectContainsPoint(allowRect, newPos));
+            if (CGRectContainsPoint(allowRect, newPos))
+            {
+                self.position = newPos;
+            }
+        }
+            break;
+        case 2:
+        {
+            CGPoint pt[2];
+            int i = 0;
+            for (id touch in touches) {
+                pt[i++] = [touch locationInView:[[CCDirector sharedDirector] openGLView]];
+            }
+            
+            _currentLength = ccpDistance(pt[0], pt[1]);
+            
+            float nowScale;
+            nowScale = (lastScale - 1) + _currentLength/_beganLength;//recognizer.scale;
+            //    CGPoint location = [self convertToGL:[recognizer locationInView:recognizer.view]];
+            
+            
+            
+            nowScale = MIN(nowScale,2);
+            nowScale = MAX(nowScale,1);
+            
+            allowRect = [self rectOfPositionAllow];
+            
+            if (lastScale > nowScale)
+            {
+                
+                CGPoint newPosition =  ccpSub(self.position, ccpMult ( ccpNormalize(self.position) ,ccpLength(self.position) *(lastScale - nowScale)/(lastScale - 1))) ;
+                if (CGRectContainsPoint(allowRect, newPosition))
+                {
+                    CCLOG(@"containsPoint");
+                    self.position = newPosition;
+                }
+            }
+            self.scale = nowScale;
+        }
+            
+            break;
+        default:
+            break;
+    }
 }
 
 

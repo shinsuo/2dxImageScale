@@ -21,6 +21,9 @@
     
     float _beganLength;
     float _currentLength;
+    
+    CGPoint _beganPoint;
+    CGPoint _currentPoint;
 }
 // returns a CCScene that contains the HelloWorldLayer as the only child
 +(CCScene *) scene;
