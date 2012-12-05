@@ -18,6 +18,9 @@
     CCSprite* backGround;
     CGSize size;
     CGRect allowRect;
+    
+    float _beganLength;
+    float _currentLength;
 }
 // returns a CCScene that contains the HelloWorldLayer as the only child
 +(CCScene *) scene;

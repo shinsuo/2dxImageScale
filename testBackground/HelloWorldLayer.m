@@ -43,6 +43,8 @@
         backGround.position = ccp( size.width /2 , size.height/2 );
 		
 		[self addChild: backGround];
+        
+//        self.isTouchEnabled = YES;
  
 	}
 	return self;
@@ -67,15 +69,26 @@
 
 -(void) handlePinchFrom:(UIPinchGestureRecognizer*)recognizer
 {
+    CGPoint onePoint = [recognizer locationOfTouch:0 inView:recognizer.view];
+    CGPoint anotherPoint = [recognizer locationOfTouch:1 inView:recognizer.view];
+    
+    _currentLength = ccpDistance(onePoint, anotherPoint);
+    
     if([recognizer state] == UIGestureRecognizerStateBegan)
     {	
         lastScale = self.scale;
+        _beganLength = _currentLength;
     }
-    float nowScale;	
-    nowScale = (lastScale - 1) + recognizer.scale;
+    
+    CCLOG(@"recognizerScale:%f, touch Point calculate:%f",recognizer.scale,_currentLength/_beganLength);
+    
+    float nowScale;
+    nowScale = (lastScale - 1) + _currentLength/_beganLength;//recognizer.scale;
 //    CGPoint location = [self convertToGL:[recognizer locationInView:recognizer.view]];
     CGPoint location = [self convertToGL:[recognizer locationInView:recognizer.view]];
     CCLOG(@"location:%f,%f",location.x,location.y);
+    
+    
     
     nowScale = MIN(nowScale,2);
     nowScale = MAX(nowScale,1);  
@@ -126,5 +139,19 @@
 	location = ccpMult(location, 1/self.scale);
 	return location;
 }
+
+#pragma mark TouchMehtod
+- (void)ccTouchesBegan:(NSSet *)touches withEvent:(UIEvent *)event
+{
+    CCLOG(@"count:%i",[touches count]);
+}
+
+- (void)ccTouchesMoved:(NSSet *)touches withEvent:(UIEvent *)event
+{
+
+}
+
+
+
 
 @end
