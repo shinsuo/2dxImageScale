@@ -13,9 +13,15 @@
 // HelloWorldLayer
 @interface HelloWorldLayer : CCLayer
 {
+    float lastScale;
+    CGPoint lastPosition;
+    CCSprite* backGround;
+    CGSize size;
+    CGRect allowRect;
 }
-
 // returns a CCScene that contains the HelloWorldLayer as the only child
 +(CCScene *) scene;
+-(CGRect) rectOfPositionAllow;
+- (CGPoint)convertToGL:(CGPoint)location;
 
 @end

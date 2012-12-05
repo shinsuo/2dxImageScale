@@ -7,57 +7,124 @@
 //
 
 
-// Import the interfaces
 #import "HelloWorldLayer.h"
 
-// HelloWorldLayer implementation
 @implementation HelloWorldLayer
 
 +(CCScene *) scene
 {
-	// 'scene' is an autorelease object.
 	CCScene *scene = [CCScene node];
 	
-	// 'layer' is an autorelease object.
 	HelloWorldLayer *layer = [HelloWorldLayer node];
 	
-	// add layer as a child to scene
 	[scene addChild: layer];
 	
-	// return the scene
 	return scene;
 }
 
-// on "init" you need to initialize your instance
 -(id) init
 {
-	// always call "super" init
-	// Apple recommends to re-assign "self" with the "super" return value
 	if( (self=[super init])) {
 		
-		// create and initialize a Label
-		CCLabelTTF *label = [CCLabelTTF labelWithString:@"Hello World" fontName:@"Marker Felt" fontSize:64];
+        lastScale = 1.f;	
+        
+        UIPinchGestureRecognizer *gestureRecognizer = [[[UIPinchGestureRecognizer alloc] initWithTarget:self action:@selector(handlePinchFrom:)] autorelease];	
+        [[[CCDirector sharedDirector] openGLView] addGestureRecognizer:gestureRecognizer];
+        
+        UIPanGestureRecognizer *gestureRecognizer1 = [[[UIPanGestureRecognizer alloc] initWithTarget:self action:@selector(handlePanFrom:)] autorelease];
+        [[[CCDirector sharedDirector] openGLView] addGestureRecognizer:gestureRecognizer1];
 
-		// ask director the the window size
-		CGSize size = [[CCDirector sharedDirector] winSize];
+        backGround = [CCSprite spriteWithFile:@"ground.jpg"];
+        
+		size = [[CCDirector sharedDirector] winSize];
 	
-		// position the label on the center of the screen
-		label.position =  ccp( size.width /2 , size.height/2 );
+        self.anchorPoint = CGPointZero;
+		self.position =  CGPointZero;
+        backGround.position = ccp( size.width /2 , size.height/2 );
 		
-		// add the label as a child to this Layer
-		[self addChild: label];
+		[self addChild: backGround];
+ 
 	}
 	return self;
 }
 
-// on "dealloc" you need to release all your retained objects
 - (void) dealloc
 {
-	// in case you have something to dealloc, do it in this method
-	// in this particular example nothing needs to be released.
-	// cocos2d will automatically release all the children (Label)
 	
-	// don't forget to call "super dealloc"
 	[super dealloc];
 }
+
+-(CGRect) rectOfPositionAllow
+{
+    CGRect theRect;
+    theRect.origin.x = size.width - self.boundingBox.size.width;
+    theRect.origin.y = size.height - self.boundingBox.size.height;
+    theRect.size.width = abs(size.width - self.boundingBox.size.width);
+    theRect.size.height = abs(size.height - self.boundingBox.size.height);
+    return theRect;
+}
+
+
+-(void) handlePinchFrom:(UIPinchGestureRecognizer*)recognizer
+{
+    if([recognizer state] == UIGestureRecognizerStateBegan)
+    {	
+        lastScale = self.scale;
+    }
+    float nowScale;	
+    nowScale = (lastScale - 1) + recognizer.scale;
+//    CGPoint location = [self convertToGL:[recognizer locationInView:recognizer.view]];
+    CGPoint location = [self convertToGL:[recognizer locationInView:recognizer.view]];
+    CCLOG(@"location:%f,%f",location.x,location.y);
+    
+    nowScale = MIN(nowScale,2);
+    nowScale = MAX(nowScale,1);  
+   
+    allowRect = [self rectOfPositionAllow];
+    
+    if (lastScale > nowScale)
+    {
+        
+        CGPoint newPosition =  ccpSub(self.position, ccpMult ( ccpNormalize(self.position) ,ccpLength(self.position) *(lastScale - nowScale)/(lastScale - 1))) ;
+        if (CGRectContainsPoint(allowRect, newPosition))
+        {
+            CCLOG(@"containsPoint");
+            self.position = newPosition;
+        }
+    }
+    self.scale = nowScale;
+    CCLOG(@"scale:%f--%f,%f,%f,%f",self.scale,self.position.x,self.position.y,ccpNormalize(self.position).x,ccpNormalize(self.position).y);
+}
+
+- (void)handlePanFrom:(UIPanGestureRecognizer *)recognizer
+{
+    CGPoint location = [self convertToGL:[recognizer locationInView:recognizer.view]];
+    CCLOG(@"location:%f,%f",location.x,location.y);
+    if (recognizer.state == UIGestureRecognizerStateBegan) 
+    {   
+        lastPosition = self.position;
+        
+    } else if (recognizer.state == UIGestureRecognizerStateChanged) 
+    { 
+        
+        CGPoint translation = [recognizer translationInView:recognizer.view];
+        translation = ccp(translation.x, -translation.y);
+        translation = ccpMult(translation, 0.7f);
+        CGPoint newPos = ccpAdd(lastPosition, translation);
+        if (CGRectContainsPoint(allowRect, newPos))
+        {
+            self.position = newPos;
+        }     
+        
+    }  
+}
+
+//屏幕坐标转化成GL坐标
+- (CGPoint)convertToGL:(CGPoint)location {
+	location = [[CCDirector sharedDirector]convertToGL:location];
+	location = ccpSub(location, self.position);
+	location = ccpMult(location, 1/self.scale);
+	return location;
+}
+
 @end
